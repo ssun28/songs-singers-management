@@ -54,11 +54,34 @@ Furthermore, fans can raise money to let their idols post new songs.
    - For the mpt, which stores key-value pair structure, the key would be [userID]+id+[timeStamp], the value structure would be:
    ![](images/mptStructure.png)
    
+- ### My wallet
+    How do you make it easier for users to manage their tokens and make transactions? What we need is a wallet.
+    Users can store their tokens in their wallet and check the balance.
+    In order to make it easier, here the initial amount of the wallet will be assumed and default setting to 100 ETH.
+
+- ### Node type
+    A node can be a regular user or can be a miner.
+    - regular user: send/receive transactions, sync blocks and blockchain
+    - miner: solve the puzzle, generate the new block and sync blockchain
+    - both user and miner: can do both things above
+     
+- ### Algorithm of posting it to blockchain
+    - When the user make a transaction either song or payment, you will send the transaction the all the miners.
+    - Miners will hold a Pending SyncTransactionPool which stores all the transactions need to be add to a new block and be confirmed.
+    - Miners choose the transactions(typically will choose the one has higher transaction fee) and solve the puzzle and make the new block.
+    - When the new block is added into the canonical blockchain, all the status of the transactions in that block will be confirmed and will be removed from the Pending SyncTransactionPool.
+    - Miner Rewards
+        - Transaction Fee per transaction	0.0005 ETH
+        - Block Reward                      3      ETH
+
+
 ## References
 [1] Inspiration from Xiaosong Gao, who is the Chairmen of Alibaba Music Group and the Chairman of Alibaba Entertainment Strategic Committee.
 
 [2] Song Metadata Standards "https://www.synchtank.com/blog/the-guild-of-music-supervisors-suggested-metadata-standards/"
 
 [3] Inside an Ethereum transaction "https://medium.com/@codetractio/inside-an-ethereum-transaction-fa94ffca912f"
+
+[4] Life Cycle of an Ethereum Transaction "https://medium.com/blockchannel/life-cycle-of-an-ethereum-transaction-e5c66bae0f6e"
 
 
