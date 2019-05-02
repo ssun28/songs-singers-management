@@ -40,8 +40,8 @@ Furthermore, fans can raise money to let their idols post new songs.
 | Design structures, includes components of the application, <br>what should be store in the songs’ info, <br>communication protocols between users, <br>algorithm of posting to blockchain| Apr 24       | Apr 25   |
 | Singer posts the songs’ information   | Apr 27        | Apr 27     |
 | Singer receives tokens when people listen to the music| Apr 28 | Apr 30|
-| Users spend token listening to music| Apr 29 |      |
-| Miners earn transaction fees| Apr 30 | |
+| Users spend token listening to music| Apr 30 | In process    |
+| Miners earn transaction fees| May 3 | |
 | Singer spends tokens letting users advertise the song| May 5 ||
 | Users receive tokens when advertising the songs| May 5 ||
 | Singer spends tokens when deciding to give the songs’ future profit to fans| May 8 ||
@@ -51,7 +51,7 @@ Furthermore, fans can raise money to let their idols post new songs.
 ## Design
 - ### Data structure
    
-   - For the mpt, which stores key-value pair structure, the key would be [userID]+id+[timeStamp], the value structure would be:
+   - For the mpt, which stores key-value pair structure, the key would be [userID]+id+[timestamp], the value structure(jsonString on the left) would be:
    ![](images/mptStructure.png)
    
 - ### My wallet
@@ -71,7 +71,7 @@ Furthermore, fans can raise money to let their idols post new songs.
     - Miners choose the transactions(typically will choose the one has higher transaction fee) and solve the puzzle and make the new block.
     - When the new block is added into the canonical blockchain, all the status of the transactions in that block will be confirmed and will be removed from the Pending SyncTransactionPool.
     - Miner Rewards
-        - Transaction Fee per transaction	0.0005 ETH
+        - Transaction Fees per transaction	0.0005 ETH
         - Block Reward                      3      ETH
 
 
