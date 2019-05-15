@@ -6,14 +6,14 @@ import (
 )
 
 type MyWallet struct {
-	address     string
+	Address     string
 	CurrencyMap map[string]float64
 	mux         sync.Mutex
 }
 
 func NewMyWallet(address string) MyWallet {
 	newCurrencyMap := make(map[string]float64)
-	newMyWallet := MyWallet{address: address, CurrencyMap: newCurrencyMap}
+	newMyWallet := MyWallet{Address: address, CurrencyMap: newCurrencyMap}
 	newMyWallet.Initial()
 
 	return newMyWallet

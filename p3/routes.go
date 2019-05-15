@@ -48,4 +48,16 @@ var routes = Routes{
 		"/canonical",
 		Canonical,
 	},
+	Route{
+		"ShowSongs",
+		"GET",
+		"/showSongs",
+		ShowSongs,
+	},
+	Route{
+		"TransactionPool",
+		"GET",
+		"/transactionPool",
+		TransactionPool,
+	},
 }

@@ -1,4 +1,4 @@
-package transaction
+package songInfo
 
 import (
 	"encoding/json"
@@ -41,7 +41,7 @@ func DecodeSongFromJson(songJson string) (Song, error) {
 	var song Song
 	err := json.Unmarshal([]byte(songJson), &song)
 	if err != nil {
-		log.Fatal("decode songJson to song error:", err)
+		log.Fatal("decode songJson to songInfo error:", err)
 	}
 
 	return song, err

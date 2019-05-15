@@ -1,8 +1,11 @@
 package p3
 
 import (
+	"../accounts"
 	"../p1"
 	"../p2"
+	"../songInfo"
+	"../transaction"
 	"./data"
 	"encoding/hex"
 	"encoding/json"
@@ -33,6 +36,9 @@ var SBC data.SyncBlockChain
 var Peers data.PeerList
 var ifStarted bool
 var ifTryNonce bool
+var MyWallet accounts.MyWallet
+var SL data.SynSongsLibrary
+var STP data.SynTransactionPool
 
 // This function will be executed before everything else.
 // Do some initialization here.
@@ -50,6 +56,12 @@ func init() {
 	id, _ := strconv.Atoi(ID_STR)
 	Peers = data.NewPeerList(int32(id), 32)
 	Peers.Register(int32(id))
+
+	MyWallet = accounts.NewMyWallet(ID_STR)
+	MyWallet.Initial()
+	SL.Initial()
+	STP.Initial()
+
 }
 
 // Register ID, download BlockChain, start HeartBeat
@@ -63,7 +75,10 @@ func Start(w http.ResponseWriter, r *http.Request) {
 
 	go StartHeartBeat()
 
-	go StartTryNonces()
+	go SendTransaction()
+
+	//go StartTryNonces()
+
 }
 
 // Display peerList and sbc
@@ -143,11 +158,23 @@ func HeartBeatReceive(w http.ResponseWriter, r *http.Request) {
 		log.Fatal("decode jsonPeerMap error:", err)
 	}
 
+	fmt.Println(heartBeatData.IfNewTransaction)
+	if heartBeatData.IfNewTransaction {
+		fmt.Println("$$$$$$have new transaction!!!")
+	}
 	if heartBeatData.Addr != SELF_ADDR {
 
 		Peers.Add(heartBeatData.Addr, heartBeatData.Id)
 
 		Peers.InjectPeerMapJson(heartBeatData.PeerMapJson, SELF_ADDR)
+
+		if heartBeatData.IfNewTransaction {
+			STP.Add(heartBeatData.Id, heartBeatData.Timestamp, heartBeatData.TransactionJson)
+			transaction, _ := transaction.DecodeTransactionFromJson(heartBeatData.TransactionJson)
+			if transaction.Category == "song" {
+				SL.Add(transaction.Value)
+			}
+		}
 
 		if heartBeatData.IfNewBlock {
 			block, _ := p2.DecodeFromJson(heartBeatData.BlockJson)
@@ -208,6 +235,8 @@ func AskForBlock(height int32, hash string) {
 }
 
 func ForwardHeartBeat(heartBeatData data.HeartBeatData) {
+	fmt.Println("forward:", heartBeatData.IfNewTransaction)
+
 	heartBeatDataJson, err := json.Marshal(heartBeatData)
 	if err != nil {
 		log.Fatal("encode heartBeatData error:", err)
@@ -217,10 +246,12 @@ func ForwardHeartBeat(heartBeatData data.HeartBeatData) {
 		Peers.Rebalance()
 	}
 
+	fmt.Println("json:", string(heartBeatDataJson))
 	peerMapCopy := Peers.Copy()
 	for addr := range peerMapCopy {
 		resp, err := http.Post(addr+"/heartbeat/receive", "application/json; charset=UTF-8",
 			strings.NewReader(string(heartBeatDataJson)))
+		fmt.Println("forward in in :", heartBeatData.IfNewTransaction)
 
 		if err != nil {
 			Peers.Delete(addr)
@@ -269,7 +300,7 @@ func StartTryNonces() {
 				newBlock.Header.Nonce = nonce
 				blockJson, _ := newBlock.EncodeToJSON()
 				peerMapJsonStr, _ := Peers.PeerMapToJson()
-				heartBeatData := data.NewHeartBeatData(true, Peers.GetSelfId(), blockJson, peerMapJsonStr, SELF_ADDR)
+				heartBeatData := data.NewHeartBeatData(true, Peers.GetSelfId(), blockJson, peerMapJsonStr, SELF_ADDR, false, "", 0)
 				SBC.Insert(newBlock)
 
 				ForwardHeartBeat(heartBeatData)
@@ -294,4 +325,32 @@ func verifyBlock(sha3StrResult string) bool {
 		return true
 	}
 	return false
+}
+
+func SendTransaction() {
+	fmt.Println(MyWallet.Withdraw("ETH", 0.0005))
+	timestamp := int64(time.Now().Unix())
+	transactionFee := transaction.TransactionFee{MyWallet.Address, "transReceiver", timestamp, 0.0005,
+		"ETH", "null"}
+
+	transactionFeeJson, _ := transactionFee.EncodeTfToJSON()
+	song := songInfo.Song{"Hello", "Adele", "25", "Adele",
+		2, "Adele Adkins & Greg Kurstin", "pop", "2015",
+		"lalalalalal", "great", transactionFeeJson}
+
+	songJson, _ := song.EncodeSongToJSON()
+	transaction := transaction.NewTransaction("song", songJson, "pending")
+	transactionJson, _ := transaction.EncodeTransactionToJSON()
+	peerMapJsonStr, _ := Peers.PeerMapToJson()
+	heartBeatData := data.NewHeartBeatData(false, Peers.GetSelfId(), "", peerMapJsonStr, SELF_ADDR, true, transactionJson, timestamp)
+	fmt.Println("send:", heartBeatData.IfNewTransaction)
+	ForwardHeartBeat(heartBeatData)
+}
+
+func ShowSongs(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "%s\n", SL.Show())
+}
+
+func TransactionPool(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "%s\n", STP.Show())
 }
