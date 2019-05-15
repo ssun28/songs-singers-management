@@ -29,6 +29,7 @@ var BC_DOWNLOAD_SERVER = TA_SERVER + "/upload"
 var PRE_SELF_ADDR = "http://localhost:"
 var SELF_ADDR = ""
 var ID_STR = ""
+var TRANS_NUM = 2
 
 //var SELF_ADDR = "http://localhost:6686"
 
@@ -75,9 +76,12 @@ func Start(w http.ResponseWriter, r *http.Request) {
 
 	go StartHeartBeat()
 
-	go SendTransaction()
+	randNum := 5 + rand.Intn(6)
+	time.Sleep(time.Duration(randNum) * time.Second)
 
-	//go StartTryNonces()
+	go TransactionPostSong()
+
+	go StartTryNonces()
 
 }
 
@@ -246,12 +250,11 @@ func ForwardHeartBeat(heartBeatData data.HeartBeatData) {
 		Peers.Rebalance()
 	}
 
-	fmt.Println("json:", string(heartBeatDataJson))
+	//fmt.Println("json:", string(heartBeatDataJson))
 	peerMapCopy := Peers.Copy()
 	for addr := range peerMapCopy {
 		resp, err := http.Post(addr+"/heartbeat/receive", "application/json; charset=UTF-8",
 			strings.NewReader(string(heartBeatDataJson)))
-		fmt.Println("forward in in :", heartBeatData.IfNewTransaction)
 
 		if err != nil {
 			Peers.Delete(addr)
@@ -278,11 +281,24 @@ func StartHeartBeat() {
 
 func StartTryNonces() {
 	for {
-		randNum := rand.Intn(10000)
+		//randNum := rand.Intn(10000)
 		mpt := p1.MerklePatriciaTrie{}
 		mpt.Initial()
-		key := strconv.FormatInt(int64(randNum), 10)
-		mpt.Insert(key, "")
+
+		//key := strconv.FormatInt(int64(randNum), 10)
+		//mpt.Insert(key, "")
+		count := 0
+
+		transactionPoolCopy := STP.Copy()
+		fmt.Println("length:", len(transactionPoolCopy))
+		for id, transaction := range transactionPoolCopy {
+			if count > TRANS_NUM {
+				break
+			}
+			mpt.Insert(id, transaction)
+			count++
+		}
+
 		newBlock := SBC.GenBlock(mpt)
 
 		for ifTryNonce {
@@ -327,7 +343,7 @@ func verifyBlock(sha3StrResult string) bool {
 	return false
 }
 
-func SendTransaction() {
+func TransactionPostSong() {
 	fmt.Println(MyWallet.Withdraw("ETH", 0.0005))
 	timestamp := int64(time.Now().Unix())
 	transactionFee := transaction.TransactionFee{MyWallet.Address, "transReceiver", timestamp, 0.0005,

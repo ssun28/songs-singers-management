@@ -250,12 +250,24 @@ func (bc *BlockChain) Canonical() string {
 		parentHash := block.Header.ParentHash
 		rs += fmt.Sprintf("height=%v, timestamp=%d, hash=%s, parentHash=%s, size=%v\n",
 			block.Header.Height, block.Header.Timestamp, block.Header.Hash, block.Header.ParentHash, block.Header.Size)
+
+		rs += fmt.Sprintf("mpt:\n")
+		for id, value := range block.Value.Kv {
+			rs += fmt.Sprintf("key=%s, value=%s\n", id, value)
+		}
+
 		currentHeight--
 		for currentHeight > 0 {
 			for _, b := range bc.Chain[currentHeight] {
 				if b.Header.Hash == parentHash {
 					rs += fmt.Sprintf("height=%v, timestamp=%d, hash=%s, parentHash=%s, size=%v\n",
 						b.Header.Height, b.Header.Timestamp, b.Header.Hash, b.Header.ParentHash, b.Header.Size)
+
+					rs += fmt.Sprintf("mpt:\n")
+					for id, value := range block.Value.Kv {
+						rs += fmt.Sprintf("key=%s, value=%s\n", id, value)
+					}
+
 					parentHash = b.Header.ParentHash
 					currentHeight--
 					break
