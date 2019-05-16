@@ -56,7 +56,9 @@ Furthermore, fans can raise money to let their idols post new songs.
 - ### My wallet
     How do you make it easier for users to manage their tokens and make transactions? What we need is a wallet.
     Users can store their tokens in their wallet and check the balance.
-    In order to make it easier, here the initial amount of the wallet will be assumed and default setting to 100 ETH.
+    In order to make it easier, each user will have a myWallet and here are the set up and initial values:
+    - Here the initial amount of the wallet will be assumed and default setting to 100 ETH.
+    - You will have your privateKey/publicKey pair in the myWallet.
 
 - ### Node type
     A node can be a regular singer, user/listener or can be a miner.
@@ -71,8 +73,10 @@ Furthermore, fans can raise money to let their idols post new songs.
     - Miners choose the transactions(typically will choose the one has higher transaction fee) and solve the puzzle and make the new block.
     - When the new block is added into the canonical blockchain, all the status of the transactions in that block will be confirmed and will be removed from the Pending SyncTransactionPool.
     - Miner Rewards
-        - Transaction Fees per transaction	0.0005 ETH
-        - Block Reward                      3      ETH
+        - Post songs/Transaction Fees per transaction	0.5 ETH
+        - Listen to the music                           1.0 ETH
+        - Block Reward                                  3.0 ETH
+        - Miner Reward = Block Reward + transactionsFee
 
 
 ## References
