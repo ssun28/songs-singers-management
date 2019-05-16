@@ -209,17 +209,16 @@ func HeartBeatReceive(w http.ResponseWriter, r *http.Request) {
 					id, _ := strconv.Atoi(ID_STR)
 					mpt := block.Value.Kv
 					if heartBeatData.Id == int32(id) {
-						fmt.Println("!!!!I got block reward!")
+
 						MyWallet.Deposit("ETH", 10.0)
 						mptSize := len(mpt)
-						fmt.Println("size:@@@@", mptSize)
+
 						MyWallet.Deposit("ETH", 0.5*float64(mptSize))
 					}
 
 					for key, transactionJson := range mpt {
 						t, _ := transaction.DecodeTransactionFromJson(transactionJson)
 						selfId := strings.Split(key, "id")[0]
-						fmt.Println("selfid:", selfId)
 
 						if t.Category == "song" {
 							if selfId == ID_STR {

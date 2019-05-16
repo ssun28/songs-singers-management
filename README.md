@@ -53,6 +53,9 @@ Furthermore, fans can raise money to let their idols post new songs.
    - For the mpt, which stores key-value pair structure, the key would be [userID]+id+[timestamp], the value structure(jsonString on the left) would be:
    ![](images/mptStructure.png)
    
+   - Here is the basic flow and process for the application
+   ![](images/flow.png)
+   
 - ### My wallet
     How do you make it easier for users to manage their tokens and make transactions? What we need is a wallet.
     Users can store their tokens in their wallet and check the balance.
@@ -77,7 +80,6 @@ Furthermore, fans can raise money to let their idols post new songs.
         - Listen to the music                           1.0 ETH
         - Block Reward                                  3.0 ETH
         - Miner Reward = Block Reward + transactionsFee
-
 
 ## References
 [1] Inspiration from Xiaosong Gao, who is the Chairmen of Alibaba Music Group and the Chairman of Alibaba Entertainment Strategic Committee.
