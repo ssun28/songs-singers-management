@@ -46,6 +46,10 @@ Furthermore, fans can raise money to let their idols post new songs.
 | Users can use the url to listen to the music| May 12 | May 12 |
 | PrivateKey/PublicKey signature authorization | May 14 | May 14 |
 | Final report and prepare project demo| May 14 | May 15 |
+| Singer spends tokens letting users advertise the song| ||
+| Users receive tokens when advertising the songs| ||
+| Singer spends tokens when deciding to give the songs’ future profit to fans| ||
+| Singer receives tokens when fans raise tokens and want their idols to make new nice songs|||
 
 ## Design
 - ### Data structure
