@@ -60,4 +60,22 @@ var routes = Routes{
 		"/transactionPool",
 		TransactionPool,
 	},
+	Route{
+		"MyWallet",
+		"GET",
+		"/myWallet",
+		ShowMyWallet,
+	},
+	Route{
+		"AskForSong",
+		"GET",
+		"/listen-music/{transactionId}/{songName}",
+		AskForSong,
+	},
+	Route{
+		"GetSongUrl",
+		"GET",
+		"/getSongUrl/{transactionId}/{songUrl}",
+		GetSongUrl,
+	},
 }

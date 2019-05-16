@@ -29,7 +29,8 @@ var BC_DOWNLOAD_SERVER = TA_SERVER + "/upload"
 var PRE_SELF_ADDR = "http://localhost:"
 var SELF_ADDR = ""
 var ID_STR = ""
-var TRANS_NUM = 2
+var USER_TYPE = ""
+var GAS_LIMIT = 2
 
 //var SELF_ADDR = "http://localhost:6686"
 
@@ -46,6 +47,7 @@ var STP data.SynTransactionPool
 func init() {
 	if len(os.Args) > 1 {
 		ID_STR = os.Args[1]
+		USER_TYPE = os.Args[2]
 		SELF_ADDR = PRE_SELF_ADDR + ID_STR
 		SBC = data.NewBlockChain()
 	} else {
@@ -79,9 +81,11 @@ func Start(w http.ResponseWriter, r *http.Request) {
 	randNum := 5 + rand.Intn(6)
 	time.Sleep(time.Duration(randNum) * time.Second)
 
-	go TransactionPostSong()
-
-	go StartTryNonces()
+	if USER_TYPE == "singer" {
+		go TransactionPostSong()
+	} else {
+		go StartTryNonces()
+	}
 
 }
 
@@ -150,6 +154,7 @@ func UploadBlock(w http.ResponseWriter, r *http.Request) {
 
 // Received a heartbeat
 func HeartBeatReceive(w http.ResponseWriter, r *http.Request) {
+
 	var heartBeatData data.HeartBeatData
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -162,53 +167,100 @@ func HeartBeatReceive(w http.ResponseWriter, r *http.Request) {
 		log.Fatal("decode jsonPeerMap error:", err)
 	}
 
-	fmt.Println(heartBeatData.IfNewTransaction)
 	if heartBeatData.IfNewTransaction {
 		fmt.Println("$$$$$$have new transaction!!!")
 	}
-	if heartBeatData.Addr != SELF_ADDR {
+	//if heartBeatData.Addr != SELF_ADDR {
 
-		Peers.Add(heartBeatData.Addr, heartBeatData.Id)
+	Peers.Add(heartBeatData.Addr, heartBeatData.Id)
 
-		Peers.InjectPeerMapJson(heartBeatData.PeerMapJson, SELF_ADDR)
+	Peers.InjectPeerMapJson(heartBeatData.PeerMapJson, SELF_ADDR)
 
-		if heartBeatData.IfNewTransaction {
-			STP.Add(heartBeatData.Id, heartBeatData.Timestamp, heartBeatData.TransactionJson)
-			transaction, _ := transaction.DecodeTransactionFromJson(heartBeatData.TransactionJson)
-			if transaction.Category == "song" {
-				SL.Add(transaction.Value)
-			}
+	if heartBeatData.IfNewTransaction {
+		STP.Add(heartBeatData.Id, heartBeatData.Timestamp, heartBeatData.TransactionJson)
+		fmt.Println("$$$$$$", STP.Show())
+		transaction, _ := transaction.DecodeTransactionFromJson(heartBeatData.TransactionJson)
+		if transaction.Category == "song" {
+			SL.Add(heartBeatData.Id, heartBeatData.Timestamp, transaction.Value)
 		}
+		heartBeatData.Hops--
+		if heartBeatData.Hops > 0 {
+			ForwardHeartBeat(heartBeatData)
+		}
+	}
 
-		if heartBeatData.IfNewBlock {
-			block, _ := p2.DecodeFromJson(heartBeatData.BlockJson)
+	if heartBeatData.IfNewBlock {
+		fmt.Println("heartbeatId:", heartBeatData.Id)
+		block, _ := p2.DecodeFromJson(heartBeatData.BlockJson)
 
-			hashStr := block.Header.ParentHash + block.Header.Nonce + block.Value.Root
-			sha3StrResult := hashToString(hashStr)
+		hashStr := block.Header.ParentHash + block.Header.Nonce + block.Value.Root
+		sha3StrResult := hashToString(hashStr)
 
-			if verifyBlock(sha3StrResult) {
-				//fmt.Println("verify heartbeat sha3result success:", sha3StrResult)
-				//fmt.Println("the block i need to insert 's height", block.Header.Height)
-				//size, _ := SBC.Get(block.Header.Height)
-				//fmt.Println("the blockarray size before insert", len(size))
-				ifTryNonce = false
-				if !SBC.CheckParentHash(block) {
-					AskForBlock(block.Header.Height-1, block.Header.ParentHash)
-				} else {
+		if verifyBlock(sha3StrResult) {
+			//fmt.Println("verify heartbeat sha3result success:", sha3StrResult)
+			//fmt.Println("the block i need to insert 's height", block.Header.Height)
+			//size, _ := SBC.Get(block.Header.Height)
+			//fmt.Println("the blockarray size before insert", len(size))
+			ifTryNonce = false
+			if !SBC.CheckParentHash(block) {
+				AskForBlock(block.Header.Height-1, block.Header.ParentHash)
+			} else {
+				if !SBC.CheckCurrentBlock(block.Header.Height, block.Header.Hash) {
+					id, _ := strconv.Atoi(ID_STR)
+					mpt := block.Value.Kv
+					if heartBeatData.Id == int32(id) {
+						fmt.Println("!!!!I got block reward!")
+						MyWallet.Deposit("ETH", 10.0)
+						mptSize := len(mpt)
+						fmt.Println("size:@@@@", mptSize)
+						MyWallet.Deposit("ETH", 0.5*float64(mptSize))
+					}
+
+					for key, transactionJson := range mpt {
+						t, _ := transaction.DecodeTransactionFromJson(transactionJson)
+						selfId := strings.Split(key, "id")[0]
+						fmt.Println("selfid:", selfId)
+
+						if t.Category == "song" {
+							if selfId == ID_STR {
+								MyWallet.Withdraw("ETH", 0.5)
+							}
+						} else if t.Category == "payment" {
+							if selfId == ID_STR {
+								MyWallet.Withdraw("ETH", 0.5)
+								MyWallet.Withdraw("ETH", 1.0)
+							}
+							paymentJson := t.Value
+							payment, _ := transaction.DecodePaymentFromJson(paymentJson)
+							if payment.Receiver == ID_STR {
+								MyWallet.Deposit("ETH", 1.0)
+								others := payment.Others
+								othersArray := strings.Split(others, ":")
+								transactionId := othersArray[1]
+								songName := othersArray[2]
+								songUrl := "www.DApp-listen-" + songName + ".com"
+								UploadSong(payment.Sender, transactionId, songUrl)
+							}
+						}
+						fmt.Println(STP.Show())
+						STP.Delete(key)
+					}
+
 					SBC.Insert(block)
 				}
-
-				heartBeatData.Hops--
-				if heartBeatData.Hops > 0 {
-					ForwardHeartBeat(heartBeatData)
-				}
-
-				ifTryNonce = true
 			}
-		}
 
-		fmt.Fprintf(w, "heartBeatReceive sucess")
+			heartBeatData.Hops--
+			if heartBeatData.Hops > 0 {
+				ForwardHeartBeat(heartBeatData)
+			}
+
+			ifTryNonce = true
+		}
 	}
+
+	fmt.Fprintf(w, "heartBeatReceive sucess")
+	//}
 }
 
 // Ask another server to return a block of certain height and hash
@@ -238,9 +290,52 @@ func AskForBlock(height int32, hash string) {
 	}
 }
 
-func ForwardHeartBeat(heartBeatData data.HeartBeatData) {
-	fmt.Println("forward:", heartBeatData.IfNewTransaction)
+func AskForSong(w http.ResponseWriter, r *http.Request) {
+	u, _ := url.Parse(r.URL.Path)
+	urlPath := strings.Split(u.Path, "/")
 
+	transactionId := urlPath[2]
+	addrId := strings.Split(transactionId, "id")[0]
+	songName := urlPath[3]
+
+	timestamp := int64(time.Now().Unix())
+	transactionFee := transaction.TransactionFee{MyWallet.Address, "transReceiver", timestamp, 0.5,
+		"ETH", "null"}
+
+	transactionFeeJson, _ := transactionFee.EncodeTfToJSON()
+	payment := transaction.Payment{MyWallet.Address, addrId, timestamp, 1.0, "ETH", "listen:" + transactionId + ":" + songName, transactionFeeJson}
+
+	paymentJson, _ := payment.EncodePaymentToJSON()
+	transaction := transaction.NewTransaction("payment", paymentJson, "pending")
+
+	transactionJson, _ := transaction.EncodeTransactionToJSON()
+	peerMapJsonStr, _ := Peers.PeerMapToJson()
+	heartBeatData := data.NewHeartBeatData(false, Peers.GetSelfId(), "", peerMapJsonStr, SELF_ADDR, true, transactionJson, timestamp)
+	ForwardHeartBeat(heartBeatData)
+
+	fmt.Fprintf(w, "Waiting for the request:[transactionId:%s] be confirmed and the singer will send you an url to listen to the music!", transactionId)
+}
+
+func UploadSong(receiver string, transactionId string, songUrl string) {
+	resp, err := http.Get(PRE_SELF_ADDR + receiver + "/getSongUrl" + "/" + transactionId + "/" + songUrl)
+	if err != nil {
+		log.Fatal("Ask for block resp error:", err)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	fmt.Println(body)
+}
+
+func GetSongUrl(w http.ResponseWriter, r *http.Request) {
+	u, _ := url.Parse(r.URL.Path)
+	urlPath := strings.Split(u.Path, "/")
+
+	transactionId := urlPath[2]
+	songUrl := urlPath[3]
+	rs := MyWallet.AddSoong(transactionId, songUrl)
+	fmt.Fprintf(w, rs)
+}
+
+func ForwardHeartBeat(heartBeatData data.HeartBeatData) {
 	heartBeatDataJson, err := json.Marshal(heartBeatData)
 	if err != nil {
 		log.Fatal("encode heartBeatData error:", err)
@@ -250,7 +345,6 @@ func ForwardHeartBeat(heartBeatData data.HeartBeatData) {
 		Peers.Rebalance()
 	}
 
-	//fmt.Println("json:", string(heartBeatDataJson))
 	peerMapCopy := Peers.Copy()
 	for addr := range peerMapCopy {
 		resp, err := http.Post(addr+"/heartbeat/receive", "application/json; charset=UTF-8",
@@ -289,13 +383,23 @@ func StartTryNonces() {
 		//mpt.Insert(key, "")
 		count := 0
 
+		for len(STP.Copy()) == 0 {
+			randNum := 5 + rand.Intn(6)
+			time.Sleep(time.Duration(randNum) * time.Second)
+		}
+
 		transactionPoolCopy := STP.Copy()
+
 		fmt.Println("length:", len(transactionPoolCopy))
-		for id, transaction := range transactionPoolCopy {
-			if count > TRANS_NUM {
+		for id, transactionJson := range transactionPoolCopy {
+			if count > GAS_LIMIT {
 				break
 			}
-			mpt.Insert(id, transaction)
+			transaction, _ := transaction.DecodeTransactionFromJson(transactionJson)
+			transaction.Status = "confirm"
+			newTransactionJson, _ := transaction.EncodeTransactionToJSON()
+			mpt.Insert(id, newTransactionJson)
+			STP.Delete(id)
 			count++
 		}
 
@@ -317,7 +421,8 @@ func StartTryNonces() {
 				blockJson, _ := newBlock.EncodeToJSON()
 				peerMapJsonStr, _ := Peers.PeerMapToJson()
 				heartBeatData := data.NewHeartBeatData(true, Peers.GetSelfId(), blockJson, peerMapJsonStr, SELF_ADDR, false, "", 0)
-				SBC.Insert(newBlock)
+
+				//SBC.Insert(newBlock)
 
 				ForwardHeartBeat(heartBeatData)
 				ifTryNonce = false
@@ -327,13 +432,29 @@ func StartTryNonces() {
 	}
 }
 
-func Canonical(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "%s\n", SBC.Canonical())
-}
+func TransactionPostSong() {
+	timestamp := int64(time.Now().Unix())
+	transactionFee := transaction.TransactionFee{MyWallet.Address, "transReceiver", timestamp, 0.5,
+		"ETH", "null"}
 
-func hashToString(hashStr string) string {
-	sum := sha3.Sum256([]byte(hashStr))
-	return hex.EncodeToString(sum[:])
+	transactionFeeJson, _ := transactionFee.EncodeTfToJSON()
+	song := songInfo.Song{}
+	if ID_STR == "1111" {
+		song = songInfo.Song{"Hello", "Adele", "25", "Adele",
+			2, "Adele Adkins & Greg Kurstin", "pop", "2015",
+			"lalalalalal", "great", transactionFeeJson}
+	} else {
+		song = songInfo.Song{"ME! (feat. Brendon Urie of Panic! At The Disco)", "Taylor Swift", "ME! (feat. Brendon Urie of Panic! At The Disco) - Single", "",
+			0, "Taylor Swift, Brendon Urie & Joel Little", "Pop", "2019",
+			"memememememe", "nice", transactionFeeJson}
+	}
+
+	songJson, _ := song.EncodeSongToJSON()
+	transaction := transaction.NewTransaction("song", songJson, "pending")
+	transactionJson, _ := transaction.EncodeTransactionToJSON()
+	peerMapJsonStr, _ := Peers.PeerMapToJson()
+	heartBeatData := data.NewHeartBeatData(false, Peers.GetSelfId(), "", peerMapJsonStr, SELF_ADDR, true, transactionJson, timestamp)
+	ForwardHeartBeat(heartBeatData)
 }
 
 func verifyBlock(sha3StrResult string) bool {
@@ -343,24 +464,8 @@ func verifyBlock(sha3StrResult string) bool {
 	return false
 }
 
-func TransactionPostSong() {
-	fmt.Println(MyWallet.Withdraw("ETH", 0.0005))
-	timestamp := int64(time.Now().Unix())
-	transactionFee := transaction.TransactionFee{MyWallet.Address, "transReceiver", timestamp, 0.0005,
-		"ETH", "null"}
-
-	transactionFeeJson, _ := transactionFee.EncodeTfToJSON()
-	song := songInfo.Song{"Hello", "Adele", "25", "Adele",
-		2, "Adele Adkins & Greg Kurstin", "pop", "2015",
-		"lalalalalal", "great", transactionFeeJson}
-
-	songJson, _ := song.EncodeSongToJSON()
-	transaction := transaction.NewTransaction("song", songJson, "pending")
-	transactionJson, _ := transaction.EncodeTransactionToJSON()
-	peerMapJsonStr, _ := Peers.PeerMapToJson()
-	heartBeatData := data.NewHeartBeatData(false, Peers.GetSelfId(), "", peerMapJsonStr, SELF_ADDR, true, transactionJson, timestamp)
-	fmt.Println("send:", heartBeatData.IfNewTransaction)
-	ForwardHeartBeat(heartBeatData)
+func Canonical(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "%s\n", SBC.Canonical())
 }
 
 func ShowSongs(w http.ResponseWriter, r *http.Request) {
@@ -369,4 +474,13 @@ func ShowSongs(w http.ResponseWriter, r *http.Request) {
 
 func TransactionPool(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s\n", STP.Show())
+}
+
+func ShowMyWallet(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "%s\n%s\n%s\n", MyWallet.GetKeys(), MyWallet.ShowAllBalance(), MyWallet.ShowSongs())
+}
+
+func hashToString(hashStr string) string {
+	sum := sha3.Sum256([]byte(hashStr))
+	return hex.EncodeToString(sum[:])
 }

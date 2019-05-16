@@ -8,7 +8,7 @@ import (
 )
 
 type Transaction struct {
-	Category string `json:"type"`
+	Category string `json:"category"`
 	Value    string `json:"value"`
 	Status   string `json:"status"`
 	Hash     string `json:"hash"`

@@ -264,7 +264,7 @@ func (bc *BlockChain) Canonical() string {
 						b.Header.Height, b.Header.Timestamp, b.Header.Hash, b.Header.ParentHash, b.Header.Size)
 
 					rs += fmt.Sprintf("mpt:\n")
-					for id, value := range block.Value.Kv {
+					for id, value := range b.Value.Kv {
 						rs += fmt.Sprintf("key=%s, value=%s\n", id, value)
 					}
 
