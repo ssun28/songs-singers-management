@@ -84,6 +84,8 @@ Furthermore, fans can raise money to let their idols post new songs.
         - Block Reward                                  3.0 ETH
         - Miner Reward = Block Reward + transactionsFee
 
+## Demo
+   Link: https://youtu.be/kXgE2kdHAgY
 ## References
 [1] Inspiration from Xiaosong Gao, who is the Chairmen of Alibaba Music Group and the Chairman of Alibaba Entertainment Strategic Committee.
 
