@@ -27,7 +27,7 @@ Furthermore, fans can raise money to let their idols post new songs.
 ## Functionalities/Success
 - Singer can post the songs’ information
 - Singer receives tokens when people listen to the singer’s music
-- User spend tokens when listen to the singer’s songs
+- Users spend tokens when listen to the singer’s songs
 - Singer sends songs' url when confirm to receive the fan's tokens
 - Users can use the url to listen to the music
 - Miners can earn transaction fees
